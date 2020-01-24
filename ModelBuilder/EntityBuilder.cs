@@ -1,4 +1,5 @@
-﻿using System;
+﻿using ModelBuilder.Properties;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Xml.Linq;
@@ -11,7 +12,7 @@ namespace ModelBuilder
             IEnumerable<XElement> keys, List<XElement> associations) {
 
             if (entity == null)
-                throw new Exception("Empty entity XElement");
+                throw new Exception(Resources.EmptyXElement);
 
             string attributeAssembly = "ModelBuilder";
             string className = entity.Attribute("Name").Value;

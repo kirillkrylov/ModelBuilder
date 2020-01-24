@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using ModelBuilder.Properties;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
@@ -12,13 +13,8 @@ namespace ModelBuilder
 {
     class Program
     {
-        const string clioJson = @"\creatio\clio\appsettings.json";
-
-        public static object Propcess { get; private set; }
-
         static async Task Main()
         {
-
             //RequestResponse rrr = Factory.Create<RequestResponse>();
             //rrr.ErrorMessage = "";
             //rrr.HttpStatusCode = HttpStatusCode.OK;
@@ -29,58 +25,45 @@ namespace ModelBuilder
 
 
             Utils utils = Utils.Instance;
-            Console.WriteLine("[TRY]\t\tBuilding Connections string from Clio settings");
+            ConsoleWriter.WriteMessage(MessageType.Try, Resources.TryMsgBuildConStr);
             try
             {
                 utils.ConnectionString = GetConnectionString();
-                Console.ForegroundColor = ConsoleColor.Green;
-                Console.WriteLine("[OK]\t\tSuccessfully obtained connection string ...");
-                Console.WriteLine();
-                Console.ResetColor();
+                ConsoleWriter.WriteMessage(MessageType.OK, Resources.OkMsgGotCS);
             }
             catch (FileNotFoundException e)
             {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.Write("[ERROR]: \t");
-                Console.ResetColor();
-                Console.Write($"{e.Message} File: ");
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.Write(e.FileName);
-                Console.WriteLine();
-                Console.ResetColor();
+                ConsoleWriter.WriteMessage(MessageType.Error, $"{e.Message} File: {e.FileName}");
                 return;
             }
 
             if (utils.ConnectionString != null)
             {
-                Console.WriteLine($"[TRY]\t\tAttempting to connect to {utils.ConnectionString.Uri}");
+                ConsoleWriter.WriteMessage(MessageType.Try, $"Attempting to connect to {utils.ConnectionString.Uri}");
                 try
                 {
                     utils.Login();
                     Console.ForegroundColor = ConsoleColor.Green;
-                    Console.WriteLine("[OK]\t\tLogin Successful !!!");
+                    ConsoleWriter.WriteMessage(MessageType.OK, Resources.OkMsgLoginOk);
 
                     Console.ForegroundColor = ConsoleColor.Yellow;                    
                     foreach (Cookie cookie in utils.AuthCookieContainer.GetCookies(new Uri(utils.ConnectionString.Uri))) {
                         int length = (cookie.Value.Length > 30) ? 30 : cookie.Value.Length;
-                        Console.WriteLine($"\t{cookie.Name}:\t{cookie.Value.Substring(0, length)}");
+                        //Console.WriteLine($"\t{cookie.Name}:\t{cookie.Value.Substring(0, length)}");
+                        ConsoleWriter.WriteMessage(MessageType.Info, $"\t{cookie.Name}:\t{cookie.Value.Substring(0, length)}");
                     }
                     Console.WriteLine();
-                    Console.ResetColor();
+                    
                 }
                 catch (ModelBuilderException e)
                 {
-                    Console.ForegroundColor = ConsoleColor.Red;
-                    Console.Write("[ERROR] \t");
-                    Console.ResetColor();
-                    Console.Write(e.Message);
+                    ConsoleWriter.WriteMessage(MessageType.Error, e.Message);
                     Console.WriteLine();
-                    Console.ResetColor();
                     return;
                 }
             }
 
-            Console.WriteLine($"[TRY]\t\tAttempting to get Enity Metadata... this might take a while !");
+            ConsoleWriter.WriteMessage(MessageType.Try, Resources.TryMsgAttempting);
             RequestResponse rr = await utils.GetMetadata().ConfigureAwait(false);
             await utils.LogoutAsync().ConfigureAwait(false);
 
@@ -88,29 +71,24 @@ namespace ModelBuilder
             {
                 Console.ForegroundColor = ConsoleColor.Green;
                 int count = CountXmlLines(rr?.Result??"");
-                Console.WriteLine($"[OK]\t\tObtained definition for {count} entities");
-                Console.ResetColor();
+                ConsoleWriter.WriteMessage(MessageType.OK, $"Obtained definition for {count} entities");
                 Console.WriteLine();
                 Console.WriteLine($"Would you like to create {count} models? Press any key to continue, <Esc> to exit");
                 ConsoleKeyInfo keyInfo = Console.ReadKey();
 
                 if (keyInfo.Key == ConsoleKey.Escape)
                 {
-                    Console.WriteLine("Exiting");
+                    Console.WriteLine(Resources.MsgExit);
                 }
                 else {
-                    Console.WriteLine("Sit tight I am woking on it");
+                    Console.WriteLine(Resources.MsgWait);
                     await BuildModels(rr.Result).ConfigureAwait(false);
                 }
             }
             else
             {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.Write("[ERROR] \t");
-                Console.ResetColor();
-                Console.Write(rr.ErrorMessage);
+                ConsoleWriter.WriteMessage(MessageType.Error, rr.ErrorMessage);
                 Console.WriteLine();
-                Console.ResetColor();
                 return;
             }
         }
@@ -122,10 +100,10 @@ namespace ModelBuilder
         private static IConnectionString GetConnectionString() {
             IConnectionString cs = Factory.Create<ConnectionString>();
 
-            string appdata = $"{Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)}{clioJson}";
+            string appdata = $"{Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)}{Resources.clioPath}";
 
-            if (!System.IO.File.Exists(appdata)) {
-                throw new FileNotFoundException("File Not Found", appdata);
+            if (!File.Exists(appdata)) {
+                throw new FileNotFoundException(Resources.MsgFileNotFound, appdata);
             }
             string jsonFile = File.ReadAllText(appdata);
             JObject j = JsonConvert.DeserializeObject<JObject>(jsonFile);
@@ -164,13 +142,12 @@ namespace ModelBuilder
                          select c.Attribute("Namespace").Value;
             
             //Create Directory
-            string dir = @"C:\Models";
+            string dir = Resources.SaveToPath;
             Directory.CreateDirectory(dir);
 
             var associations = (from ent in xDoc.Descendants()
                                where ent.Name.LocalName == "Association"
                                select ent).ToList();
-
 
             var entities = from ent in xDoc.Descendants()
                            where ent.Name.LocalName == "EntityType"
@@ -181,10 +158,6 @@ namespace ModelBuilder
                 IEnumerable<XElement> keys = from key in entities.Descendants()
                            where key.Name.LocalName == "PropertyRef"
                            select key;
-
-
-                //string className = entity.Attribute("Name").Value;
-                //Console.WriteLine(className);
 
                 EntityBuilder eb = Factory.Create<EntityBuilder>();
                 BaseModel bm = eb.Build(nSpace.FirstOrDefault(), entity, keys, associations); ;
@@ -214,23 +187,5 @@ namespace ModelBuilder
             }
         }
     }
-    
-    public class CObjectAttribute : Attribute
-    {
-        public string RootSchemname { get; set; } = "";
-    }
-    public class CPropertyAttribute : Attribute 
-    {
-        public string ColumnPath { get; set; }
-        public bool IsKey { get; set; }
-        public string Association { get; set; }
-        public string Navigation { get; set; }
-    }
-
-
-
-
-
-
 }
 

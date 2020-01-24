@@ -2,7 +2,7 @@
 
 namespace ModelBuilder
 {
-    class ModelBuilderException : Exception
+    public class ModelBuilderException : Exception
     {
         public ModelBuilderException() { }
         public ModelBuilderException(string message) : base(message) { }

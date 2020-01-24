@@ -5,6 +5,7 @@ using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml;
+using ModelBuilder.Properties;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -15,8 +16,8 @@ namespace ModelBuilder
         private static volatile Utils _instance;
         private static readonly object _syncLock = new object();
         private bool BpmSessionId = false;
-        public IConnectionString ConnectionString;
-        
+       
+        public IConnectionString ConnectionString { get; set; }
         public CookieContainer AuthCookieContainer { get; set; }
         
         private bool _IsLoginSuccess = false;
@@ -56,48 +57,43 @@ namespace ModelBuilder
                     ConnectionString.Uri = ConnectionString.Uri.Remove(ConnectionString.Uri.Length - 1, 1);
 
                 CookieContainer AuthCookie = new CookieContainer();
-                string authServiceUri = ConnectionString.Uri + @"/ServiceModel/AuthService.svc/Login";
+                //string authServiceUri = ConnectionString.Uri + @"/ServiceModel/AuthService.svc/Login";
+                string authServiceUri = ConnectionString.Uri + Resources.authServiceUri;
 
-                HttpWebRequest authRequest = (HttpWebRequest)WebRequest.Create(authServiceUri);
+                HttpWebRequest authRequest = (HttpWebRequest)WebRequest.Create(new Uri(authServiceUri));
                 authRequest.Method = "POST";
                 authRequest.ContentType = "application/json";
                 authRequest.CookieContainer = AuthCookie;
                 using (var requestStream = authRequest.GetRequestStream())
                 {
-                    using (StreamWriter writer = new StreamWriter(requestStream))
-                    {
-                        writer.Write(@"{
+                    using StreamWriter writer = new StreamWriter(requestStream);
+                    writer.Write(@"{
                     ""UserName"":""" + ConnectionString.Username + @""",
                     ""UserPassword"":""" + ConnectionString.Password + @"""
                     }");
-                    }
                 }
-                
-                using (HttpWebResponse myHttpWebResponse = (HttpWebResponse)authRequest.GetResponse())
-                {
-                    HttpStatusCode status = myHttpWebResponse.StatusCode;
-                    using (StreamReader MyStreamReader = new StreamReader(myHttpWebResponse.GetResponseStream(), true))
-                    {
-                        string response = MyStreamReader.ReadToEnd();
-                        JObject jsonResponse = JObject.Parse(response);
-                        Dictionary<string, string> results = new Dictionary<string, string>();
 
-                        foreach (KeyValuePair<string, JToken> item in jsonResponse)
-                        {
-                            results.Add(item.Key, item.Value.ToString());
-                        }
-                        if (results["Code"] == "0")
-                        {
-                            AuthCookie.Add(myHttpWebResponse.Cookies);
-                            Instance._IsLoginSuccess = true;
-                            return AuthCookie;
-                        }
-                        else
-                        {
-                            string loginFailedMessage = jsonResponse.SelectToken("Message").Value<string>();                            
-                            throw new ModelBuilderException(loginFailedMessage);
-                        }
-                    }
+                using HttpWebResponse myHttpWebResponse = (HttpWebResponse)authRequest.GetResponse();
+                HttpStatusCode status = myHttpWebResponse.StatusCode;
+                using StreamReader MyStreamReader = new StreamReader(myHttpWebResponse.GetResponseStream(), true);
+                string response = MyStreamReader.ReadToEnd();
+                JObject jsonResponse = JObject.Parse(response);
+                Dictionary<string, string> results = new Dictionary<string, string>();
+
+                foreach (KeyValuePair<string, JToken> item in jsonResponse)
+                {
+                    results.Add(item.Key, item.Value.ToString());
+                }
+                if (results["Code"] == "0")
+                {
+                    AuthCookie.Add(myHttpWebResponse.Cookies);
+                    Instance._IsLoginSuccess = true;
+                    return AuthCookie;
+                }
+                else
+                {
+                    string loginFailedMessage = jsonResponse.SelectToken("Message").Value<string>();
+                    throw new ModelBuilderException(loginFailedMessage);
                 }
             }
         }
@@ -117,7 +113,6 @@ namespace ModelBuilder
         public void Login()
         {
             AuthCookieContainer = AuthRequest();
-
         }
 
         public async Task<bool> LogoutAsync()
@@ -141,7 +136,7 @@ namespace ModelBuilder
             string transportUrl = Url.TransportUrl(method, ConnectionString.Uri);
             HttpStatusCode Code;
             RequestResponse result = new RequestResponse();
-            HttpWebRequest myHttpWebRequest = (HttpWebRequest)WebRequest.Create(transportUrl);
+            HttpWebRequest myHttpWebRequest = (HttpWebRequest)WebRequest.Create(new Uri(transportUrl));
             myHttpWebRequest.Method = "POST";
             myHttpWebRequest.ContentType = "application/json";
             myHttpWebRequest.CookieContainer = Instance.AuthCookieContainer;
@@ -204,13 +199,12 @@ namespace ModelBuilder
             return result;
         }
 
-
         public async Task<RequestResponse> GetMetadata() {
 
             string transportUrl = Url.TransportUrl(ActionEnum.METADATA, ConnectionString.Uri);
             HttpStatusCode Code;
             RequestResponse result = new RequestResponse();
-            HttpWebRequest myHttpWebRequest = (HttpWebRequest)WebRequest.Create(transportUrl);
+            HttpWebRequest myHttpWebRequest = (HttpWebRequest)WebRequest.Create(new Uri(transportUrl));
             myHttpWebRequest.Method = "GET";
             myHttpWebRequest.ContentType = "application/json";
             myHttpWebRequest.CookieContainer = Instance.AuthCookieContainer;

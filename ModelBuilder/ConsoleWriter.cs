@@ -1,4 +1,5 @@
-﻿using System;
+﻿using ModelBuilder.Properties;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -6,10 +7,7 @@ namespace ModelBuilder
 {
     public static class ConsoleWriter
     {
-
-
         public static void WriteMessage(MessageType type, string message) {
-
 
             switch (type)
             {
@@ -22,13 +20,13 @@ namespace ModelBuilder
                 case MessageType.Warning:
                     break;
                 case MessageType.Info:
+                    InfoMessage(message);
                     break;
                 case MessageType.Detail:
                     break;
                 case MessageType.Try:
+                    TryMessage(message);
                     break;
-
-
 
                 default:
                     break;
@@ -37,35 +35,41 @@ namespace ModelBuilder
 
         private static void OkMessage(string message) {
             Console.ForegroundColor = ConsoleColor.Green;
-            Console.Write("[ OK ]");
+            Console.Write(Resources.ok);
             Console.ResetColor();
-            Console.Write("\t\t");
-            Console.Write(message);
+            Console.Write($"\t\t{message}");
+            Console.ResetColor();
             Console.WriteLine();
-            Console.ResetColor();
         }
 
         private static void ErrorMessage(string message) 
         {
             Console.ForegroundColor = ConsoleColor.Red;
-            Console.Write("[ ERROR ]");
+            Console.Write(Resources.error);
             Console.ResetColor();
-            Console.Write("\t\t");
-            Console.Write(message);
+            Console.Write($"\t\t{message}");
+            Console.ResetColor();
             Console.WriteLine();
-            Console.ResetColor();
         }
-
-
+        
         private static void TryMessage(string message)
         {
-            Console.Write("[ TRY ]");
+            Console.ForegroundColor = ConsoleColor.White;
+            Console.Write(Resources._try);
             Console.ResetColor();
-            Console.Write("\t\t");
-            Console.Write(message);
+            Console.Write($"\t\t{message}");
+            Console.ResetColor();
+            Console.WriteLine();
+        }
+
+        private static void InfoMessage(string message)
+        {
+            Console.ForegroundColor = ConsoleColor.Yellow;
+            Console.Write(Resources.info);
+            Console.ResetColor();
+            Console.Write($"\t\t{message}");
             Console.WriteLine();
             Console.ResetColor();
         }
-
     }
 }
