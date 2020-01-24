@@ -169,7 +169,7 @@ namespace ModelBuilder.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to .
+        ///   Looks up a localized string similar to C:\Models.
         /// </summary>
         internal static string SaveToPath {
             get {

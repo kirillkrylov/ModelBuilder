@@ -151,7 +151,7 @@
     <value>Login Successful !!!</value>
   </data>
   <data name="SaveToPath" xml:space="preserve">
-    <value />
+    <value>C:\Models</value>
   </data>
   <data name="String1" xml:space="preserve">
     <value>Building Connections string from Clio settings</value>
